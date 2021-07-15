@@ -95,10 +95,96 @@ vagrant ssh-config
 [vagrant@localhost ~]$
 ```
 
+
+
+## パッケージをインストール
+グループパッケージをインストールするコマンド
+※ gitなどの開発に必要なパッケージを一括でインストール
+```
+sudo yum -y groupinstall "development tools"
+```
+
+### sudoコマンド
+rootユーザー(システム管理者)の権限を借りるコマンドです。
+ゲストOSにログインした場合、ログインユーザーはvagrantとなります。
+vagrantというユーザーは、rootユーザーによって作成されたユーザーであり、
+rootユーザーにしか許されていない操作を実行する際には、rootユーザーの権限を一時的に借りる必要があります。
+通常時は一般ユーザーで作業を行い、必要なときだけsudoコマンドを使用してrootユーザーの権限を借りるようにしましょう。
+
+### yumコマンド
+CentOSを代表とするLinuxOSのRedHat系ディストリビューションと呼ばれる種類のOSで使用されているパッケージ管理ツール・コマンドです。
+Macの brew に近いイメージです。
+#### -yオプション
+インストール実行途中に yes/no と聞かれた場合に全て自動でyesと回答してくれます。
+大量のパッケージをインストールしようとした場合、個々のパッケージのインストールごとに
+yes/no の入力を求められてスクリプトが停止してしまい面倒であるため、忘れずに付けるようにしましょう。
+
+### groupinstall
+まとめてパッケージのインストールを行うことが可能です。
+他のグループパッケージでも対応可能です。
+
+
+## PHPのインストール
+yumコマンドを使用してPHPをインストールした場合、古いバージョンのPHPがインストールされてしまいます。
+今回はバージョン7.3でインストールする為、外部パッケージツールをダウンロードして、そこからPHPをインストールしていきます。
+```
+sudo yum -y install epel-release wget
+sudo wget http://rpms.famillecollet.com/enterprise/remi-release-7.3.rpm
+sudo rpm -Uvh remi-release-7.rpm
+sudo yum -y install --enablerepo=remi-php72 php php-pdo php-mysqlnd php-mbstring php-xml php-fpm php-common php-devel php-mysql unzip
+php -v
+```
+
+### 拡張モジュール
+PHPのインストールと同時に、PHPアプリケーションを動かす上で必要となるモジュール(拡張機能)をインストールしています。
+PDO接続行うために、php-mbstring は PHPで日本語などのマルチバイト文字を扱うために必要となります。
+
+### wget
+URLを指定することで指定先URLのファイルをダウンロードすることが可能です。
+
+### rpm
+Linuxディストリビューション(CentOSやFedora)内で使用できるパッケージ管理ツールです。
+yumと異なる点としては、yumがパッケージごとの **依存関係** を管理してくれることに対して、
+rpmはパッケージ自体を管理することはできますがその管理対象のパッケージの依存関係までは管理することはできません。
+
+
+## composerのインストール
+PHPのパッケージ管理ツールであるcomposerをインストール
+```
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+php composer-setup.php
+php -r "unlink('composer-setup.php');"
+
+# どのディレクトリにいてもcomposerコマンドを使用できるようfileの移動を行います
+sudo mv composer.phar /usr/local/bin/composer
+composer -v
+```
+
+### Composer
+Composerは RedHat系のLinuxディストリビューションで使用できるOS用パッケージ管理ツールの yum とは異なり、PHPのパッケージの **依存関係** を管理・解決するツールです。
+
+
+## 依存関係とは
+依存関係管理・解決ツールがない場合、
+パッケージAを使用するために必要なパッケージB、パッケージC、
+さらにパッケージB、パッケージCが必要とするパッケージD、パッケージEを自分で探して個別にインストールしなければいけなくなります。
+依存関係管理・解決ツールは、パッケージAをインストール時に、複雑な依存関係にあるパッケージをすべて同時にインストールしてくれます。
+
+
+###
+###
+###
+
+
+
+
 ## 5
 ## 5
 ## 5
 ## 5
+## 5
+## 5
+
 
 
 ## 条件
