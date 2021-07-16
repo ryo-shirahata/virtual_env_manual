@@ -453,19 +453,288 @@ php artisan migrate
 ブラウザ上でユーザー登録ができればローカルで動かしていたLaravelを仮想環境上で全く同じように動かすことができたということになります。
 
 
+## Nginxを用いた動作確認
+Nginx は Apache と同様にWebサーバです。
+本来一つのサーバではApacheかNginxどちらか片方しか使用しませんが、今回は練習としてApache、Nginx両方のパターンで試してみましょう。
+Nginxの方がApacheよりもWebサーバとしてのシェア率が高く、使用する機会も多いと思われますので、設定方法について学んでいきます。
 
 
-## 5
-## 5
+## Apacheの起動状態を停止
+まず起動状態であるApacheを一度停止します。
+```
+sudo systemctl stop httpd
+```
+以下コマンドで停止の確認をします。
+```
+sudo systemctl status httpd
+```
+
+### モジュールのインストール
+Nginxを使用してPHPアプリケーションを動かす上で必ず *php-fpm* というPHPのモジュールが必要になります。
+PHPインストールの箇所で同時にインストールを済ませています。
+Apacheは単体で機能し、Nginxは php-fpmというモジュールとセットで機能するということを覚えてください。
+これはApacheが mod_php というモジュールを使用してApacheの中でPHPを実行する環境を整えておりアプリケーションサーバの役割を兼ねているためです。
+
+
+## Nginxのインストール
+Nginxの最新版をインストールしていきます。
+viエディタを使用して以下のファイルを作成します。
+```
+sudo vi /etc/yum.repos.d/nginx.repo
+```
+以下を記述してください。
+```
+[nginx]
+name=nginx repo
+baseurl=https://nginx.org/packages/mainline/centos/\$releasever/\$basearch/
+gpgcheck=0
+enabled=1
+```
+保存して以下のコマンドを実行しNginxのインストールを実行します。
+```
+sudo yum install -y nginx
+nginx -v
+```
+バージョンの確認が出来れば、以下コマンドで起動しましょう。
+```
+sudo systemctl start nginx
+```
+ブラウザにて http://192.168.33.19 と入力し、画面表示を確認してください。
+
+
+## Laravelを動かす(nginxのconf編集)
+Apache同様に設定ファイルを編集します。
+php-fpmにも設定ファイルが存在しているのでこちらも編集を行います。
+```
+sudo vi /etc/nginx/conf.d/default.conf
+```
+編集範囲が広いので随時、保存と確認をしながら作業をしてください。
+```
+server {
+  listen       80;
+  server_name  192.168.33.19; # Vagranfileでコメントを外した箇所のipアドレスを記述してください。
+  # ApacheのDocumentRootにあたります
+  root /vagrant/laravel_app/public; # 追記
+  index  index.html index.htm index.php; # 追記
+
+  #charset koi8-r;
+  #access_log  /var/log/nginx/host.access.log  main;
+
+  location / {
+      #root   /usr/share/nginx/html; # コメントアウト
+      #index  index.html index.htm;  # コメントアウト
+      try_files $uri $uri/ /index.php$is_args$args;  # 追記
+  }
+
+  # 省略
+
+  # 該当箇所のコメントを解除し、必要な箇所には変更を加える
+  # 下記は root を除いたlocation { } までのコメントが解除されていることを確認してください。
+
+  location ~ \.php$ {
+  #    root           html;
+      fastcgi_pass   127.0.0.1:9000;
+      fastcgi_index  index.php;
+      fastcgi_param  SCRIPT_FILENAME  /$document_root/$fastcgi_script_name;  # $fastcgi_script_name以前を /$document_root/に変更
+      include        fastcgi_params;
+  }
+
+  # 省略
+```
+Nginxの設定ファイルの変更は、以上です。
+
+
+## Laravelを動かす(php-fpmのconf編集)
+次に php-fpm の設定ファイルを編集していきます。
+```
+sudo vi /etc/php-fpm.d/www.conf
+```
+変更箇所は以下になります。
+```
+;24行目近辺
+user = apache
+# ↓ 以下に編集
+user = nginx
+
+group = apache
+# ↓ 以下に編集
+group = nginx
+```
+設定ファイルの変更に関しては、以上となります。
+では早速起動しましょう(Nginxは再起動になります)。
+```
+sudo systemctl restart nginx
+sudo systemctl start php-fpm
+```
+再度ブラウザにて、 http://192.168.33.19 を入力して確認してください。
+画面は表示されますが、以下のようなLaravelのエラーが表示されると思います。
+```
+The stream or file "/vagrant/laravel_app/storage/logs/laravel.log" could not be opened: failed to open stream: Permission denied
+```
+ファイルとディレクトリの実行 user と group に nginx が許可されていないため起きているエラーです。
+
+
+## nginxへ権限の付与
+以下のコマンドを実行して nginx というユーザーでもログファイルへの書き込みができる権限を付与してあげましょう。
+```
+cd /vagrant/laravel_app
+sudo chmod -R 777 storage
+```
+
+
+## パーミッション
+**パーミッション** とはファイルやディレクトリに対する **操作権限** です。
+ls -la コマンドを実行して実際にどのような操作権限が付与されているか確認してみます。
+```
+cd /vagrant/laravel_app/storage
+ls -la
+
+合計 0
+drwxrwxrwx 1 vagrant vagrant 160  2月 28 11:48 .
+drwxr-xr-x 1 vagrant vagrant 928  2月 28 11:48 ..
+drwxrwxrwx 1 vagrant vagrant 128  2月 28 11:48 app
+drwxrwxrwx 1 vagrant vagrant 224  2月 28 11:48 framework
+drwxrwxrwx 1 vagrant vagrant 128  2月 28 11:48 logs
+```
+上記中で、パーミッションを指しているのが **drwxrwxrwx** の部分です。
+一番左の **d** はディレクトリであることを意味しており、ファイルの場合は - が表示されます。
+
+パーミッションは残りのrwxrwxrwxの部分です。
+アルファベットのrとwとxはそれぞれ
+```
+r : 読み
+w : 書き
+x : 実行
+```
+を意味しており、3文字ごとにそれぞれ以下の対象についての権限を表しています。
+```
+rwx : rwx : rwx
+所有者(u)のアクセス権 : グループユーザー(g)のアクセス権 : その他のユーザー(o)のアクセス権
+```
+許可を与えているものはそれぞれ rwx のアルファベットで表現され、許可が与えられていないものは - という表記になります。
+ターミナル上でも、アプリケーション実行時でも Permission denied というエラーが表示された場合は、
+大抵がこの権限の問題ですので適切に権限やユーザー・グループの変更を行う必要があります。
+
+### chmod
+chmodはファイルやディレクトリのパーミッションを変更するコマンドです。
+
+### chown (CHange OWNer)
+chown は パーミッションユーザーとグループを変更するコマンドです。
+
+### 8進数での表現方法
+|  r  |  w  |  x  |  ２進数  |  ８進数  |
+| --- | --- | --- | ------- | ------- |
+|  0  |  0  |  0  |   000   |    0    |
+| --- | --- | --- | ------- | ------- |
+|  0  |  0  |  1  |   001   |    1    |
+| --- | --- | --- | ------- | ------- |
+|  0  |  1  |  0  |   010   |    2    |
+| --- | --- | --- | ------- | ------- |
+|  0  |  1  |  1  |   011   |    3    |
+| --- | --- | --- | ------- | ------- |
+|  1  |  0  |  0  |   100   |    4    |
+| --- | --- | --- | ------- | ------- |
+|  1  |  0  |  1  |   101   |    5    |
+| --- | --- | --- | ------- | ------- |
+|  1  |  1  |  0  |   110   |    6    |
+| --- | --- | --- | ------- | ------- |
+|  1  |  1  |  1  |   111   |    7    |
+上記図を参照して、
+chmod 755 と指定した場合は rwxr-xr-x
+逆に rwxr-x--x の権限を付与したい場合は chmod 751 と指定します。
+
+
+## 権限の確認
+意図的にアプリケーション実行エラーを起こしてlaravel.logに画面と同じエラーが表示されているか見てみましょう。
+```
+cd /vagrant/laravel_app
+vi routes/web.php
+```
+以下のように変更しましょう。
+```
+Route::get('/', function () {
+    return view('welcome');
+});
+
+↓ # ; を消します
+
+Route::get('/', function () {
+    return view('welcome')
+});
+```
+編集が完了しましたら次は以下のコマンドを実行します。
+```
+tail -f storage/logs/laravel.log
+```
+では、再度 http://192.168.33.19 のURLにアクセスしてみます。
+```
+syntax error, unexpected '}', expecting ';'
+```
+上記の syntax error が確認出来たかと思います。
+確認が完了しましたら、Ctrl + c でtailの実行モードを終了しましょう。
+では変更した routes/web.php の内容を元に戻して再度 http://192.168.33.19 にアクセスして正常にLaravelのWelcome画面の表示をしてください。
+
+### tail
+指定したファイルの末数行を出力するコマンドです。
+-f オプションを付けて実行した場合は、ファイルの変更を監視し変更があれば常時出力するモードとなります。
+
+
+## エラーの確認
+Apacheの設定ファイルに記述ミスなどが合った場合に CentOSでは /etc/httpd/logs/error_log というファイルにエラーの内容が書き込まれます。
+Nginxの場合は /var/log/nginx/error.log というファイルにエラー内容が書き込まれるようになっています。
+
+このように画面に出力されるエラー内容だけではなくログファイルに書き込まれたエラー内容を見て、
+エラーやバグを解消していくことも多いので tail コマンドの使用には慣れましょう。
+
+以上でVagrantを使用した仮想環境構築は終了となります。
+
+
+## LAMP環境
+**LAMP環境** とは、Webアプリケーションを開発するための、代表的なシステムの頭文字を取って命名されています。
+
+- L inux
+- A pache
+- M ySQL（または、MariaDBなど）
+- P HP（または、Pythonなど）
+
+今回のServer Lessonでは全て利用しており、LAMP環境での環境構築ということになります。
+LAMP環境は全て **オープンソースソフトウェア** を活用しているため、
+誰でも自由かつ無料で開発環境を構築し、Webアプリケーションの開発に取り掛かることができます。
+コストが抑えられる点や汎用性が高い点などから、多くの企業で利用されている開発環境だと言えます。
+
+また、他にも XAMPP や MAMP といった環境構築パッケージもあります。
+
+### XAMPP
+- X クロスプラットフォーム
+- A pache
+- M ySQL（または、MariaDBなど）
+- P HP
+- P erl
+
+**クロスプラットフォーム** とは、macOSやWindowsなどの様々なOSでも同じ仕様で動作するプログラムのことです。
+近年は動作環境が多様化しているため、クロスプラットフォームでの開発環境が注目されています。
+
+### MAMP
+- M acintosh
+- A pache
+- M ySQL（または、MariaDBなど）
+- P HP（または、Pythonなど）
+
+MAMPはMacに特化したパッケージです。
+無料版と有償版があり用途によっては、拡張版である有償版をインストールする必要があります。
 
 
 
+# 環境構築の所感
+- 1
+- 2
+- 3
+- 4
+- 5
 
-### grep
-###
-###
 
-
+# 参考サイト
+[Gizumoのホームページはこちら](https://gizumo-inc.jp/)
 
 
 ## 条件
@@ -479,15 +748,3 @@ php artisan migrate
 
 スタートは vagrant用ディレクトリの作成
 ゴールは インストールしたLaravelプロジェクトにログイン機能を実装して実際にログインすること
-
-
-# 環境構築の所感
-- 1
-- 2
-- 3
-- 4
-- 5
-
-
-# 参考サイト
-[Gizumoのホームページはこちら](https://gizumo-inc.jp/)
