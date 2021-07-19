@@ -87,6 +87,54 @@ config.vm.synced_folder "../data", "/vagrant_data"
 config.vm.synced_folder "./", "/vagrant", type:"virtualbox"
 ```
 
+## ポート番号の確認方法
+以下のコマンドを実行してみてください。
+
+Linuxコマンドですので気を付けてください。
+```
+lsof -i
+```
+以下は例です。
+```
+COMMAND     PID     USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+proftpd     683   nobody    0u  IPv4  15203      0t0  TCP *:ftp (LISTEN)
+chronyd     685   chrony    1u  IPv4  15207      0t0  UDP localhost:323
+chronyd     685   chrony    2u  IPv6  15208      0t0  UDP localhost:323
+php-fpm     925     root    6u  IPv4  19066      0t0  TCP localhost:cslistener (LISTEN)
+sshd        934     root    3u  IPv4  19972      0t0  TCP *:EtherNet/IP-1 (LISTEN)
+postgres    949 postgres    3u  IPv6  19990      0t0  TCP localhost:postgres (LISTEN)
+postgres    949 postgres    4u  IPv4  19991      0t0  TCP localhost:postgres (LISTEN)
+postgres    949 postgres    8u  IPv6  20026      0t0  UDP localhost:48654->localhost:48654
+```
+
+### lsofコマンド実行結果の各項目説明
+|  COMMAND  |  実行プログラム  |
+| --------- | -------------- |
+|    PID    |   プロセス番号   |
+| --------- | -------------- |
+|   USER    |   実行ユーザー   |
+| --------- | -------------- |
+|   NODE    |    プロトコル    |
+| --------- | -------------- |
+|   NAME    |     ポート      |
+| --------- | -------------- |
+| (LISTEN)  |   待ち受け状態   |
+
+### 特定のポート番号から使用しているプロセスを表示する
+下記の例では、ポート80番がNginxに利用されていることが分かります。
+```
+lsof -i:80
+COMMAND   PID  USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+nginx   26810  root   12u  IPv4 206674      0t0  TCP *:http (LISTEN)
+nginx   26811 nginx   12u  IPv4 206674      0t0  TCP *:http (LISTEN)
+```
+下記例では、ポート3306番がMySQLに利用されていることが分かります。
+```
+lsof -i:3306
+COMMAND  PID  USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+mysqld  1473 mysql   17u  IPv6  22561      0t0  TCP *:mysql (LISTEN)
+```
+
 ### ポート
 OSがデータ通信を行うために使用する港やドアといったイメージです。
 
