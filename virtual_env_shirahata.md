@@ -749,10 +749,26 @@ php-fpmにも設定ファイルが存在しているのでこちらも編集を�
 sudo vi /etc/nginx/conf.d/default.conf
 ```
 編集範囲が広いので随時、保存と確認をしながら作業をしてください。
+
+変更点①は、
+
+- server_name箇所、Vagranfileでコメントを外した箇所のipアドレスを記述してください。
+- server、root箇所を追記
+- server、index箇所を追記
+- location、root箇所をコメントアウト
+- location、index箇所をコメントアウト
+- location以下へ一文を追記、リクエストに応じたファイルを返す処理です。
+
+変更点②は、
+
+- 該当箇所のコメントを解除してください。
+- location、fastcgi_param箇所を以下を参考に変更してください。
+- $fastcgi_script_name以前を /$document_root/に変更
 ```
+# 変更点① (1行)
 server {
   listen       80;
-  server_name  192.168.33.19; # Vagranfileでコメントを外した箇所のipアドレスを記述してください。
+  server_name  192.168.33.19;
   # ApacheのDocumentRootにあたります
   root /vagrant/laravel_app/public; # 追記
   index  index.html index.htm index.php; # 追記
@@ -768,14 +784,12 @@ server {
 
   # 省略
 
-  # 該当箇所のコメントを解除し、必要な箇所には変更を加える
-  # 下記は root を除いたlocation { } までのコメントが解除されていることを確認してください。
-
+# 変更点① (33行)
   location ~ \.php$ {
   #    root           html;
       fastcgi_pass   127.0.0.1:9000;
       fastcgi_index  index.php;
-      fastcgi_param  SCRIPT_FILENAME  /$document_root/$fastcgi_script_name;  # $fastcgi_script_name以前を /$document_root/に変更
+      fastcgi_param  SCRIPT_FILENAME  /$document_root/$fastcgi_script_name;
       include        fastcgi_params;
   }
 
