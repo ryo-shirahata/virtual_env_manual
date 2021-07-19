@@ -20,6 +20,9 @@
 - composerのインストール
 
 - Laravelアプリケーションのコピー作成
+- Webサーバのインストール
+  今回はNginxを使用します。
+
 - Apacheのインストール
 - 設定ファイルの編集
 - Apacheの起動
@@ -61,23 +64,38 @@ vagrant init centos/7
 
 変更点①は、# が付いているのを外します。
 変更点②は、# が付いているのを外し、ipアドレスを変更します。
-変更点③は、ホストOSとゲストOSのディレクトリ内をリアルタイムで同期するための設定です。
+変更点③は、# が付いているのを外し、ホストOSとゲストOSのディレクトリ内をリアルタイムで同期するための設定です。
 ```
-# 変更点①
+# 変更点① (26行)
 config.vm.network "forwarded_port", guest: 80, host: 8080
 
-# 変更点②
+# 変更点② (35行)
 config.vm.network "private_network", ip: "192.168.33.19"
 
-# 変更点③
+# 変更点③ (46行)
 config.vm.synced_folder "../data", "/vagrant_data"
 # ↓ 以下に編集
 config.vm.synced_folder "./", "/vagrant", type:"virtualbox"
 ```
 
+### ポート
+OSがデータ通信を行うために使用する港やドアといったイメージです。
+今回はホストOSのポート8080番を使用します、起動が上手くいかない場合は既に8080番が使用されている可能性があります。
+
+### ポートフォワーディング
+自らの特定のポート番号への通信を別のアドレスの特定のポートへ自動的に転送することです。
+ここではゲストOS（Vagrant）の80番の通信をホストOS（MacやWindowsなど）の8080へ転送する設定をしています。
+
+### プライベートネットワーク
+システムの内部での通信のために用いられるコンピュータネットワークのことです。
+システム外部から内部のプライベートネットワークへの通信はできません。
+過去にVagrantを使用したことがありプライベートネットワークIP 192.168.33.19 が既に使われている場合、
+起動に失敗してしまうため192.168.55.19 などへ変更しましょう。
+
+
 ## Vagrant プラグインのインストール
 Vagrantへプラグイン(拡張機能)をインストールするコマンド
-※ 今回は、初めに追加したBoxの中にインストールされているGuest Additionsというもののバージョンを、VirtualBoxのバージョンに合わせて最新化してくれるプラグイン
+今回は、初めに追加したBoxの中にインストールされているGuest Additionsというもののバージョンを、VirtualBoxのバージョンに合わせて最新化してくれるプラグイン
 ```
 vagrant plugin install vagrant-vbguest
 ```
@@ -85,14 +103,49 @@ vagrant plugin install vagrant-vbguest
 ```
 vagrant plugin list
 ```
+vagrant-vbguest以外にも 起動しているゲストOSの状態を全て同時に確認できるようにしてくれる vagrant-global-status、
+環境構築中のゲストOSの状態を保存・巻き戻しができる sahara といったプラグインがあります。
+
 
 ## Vagrantを使用してゲストOSの起動
 Vagrantを起動するコマンド
-※ aVagrantfileがあるディレクトリにて実行
-※ 初回の起動には、時間がかかります。
+Vagrantfileがあるディレクトリにて実行
+初回の起動には、時間がかかります。
 ```
 vagrant up
 ```
+
+### mountedエラーが発生した場合
+以下のようなエラーが発生する場合があります。
+```
+The following SSH command responded with a non-zero exit status.
+Vagrant assumes that this means the command failed!
+
+umount /mnt
+
+Stdout from the command:
+
+Stderr from the command:
+
+umount: /mnt: not mounted
+```
+以下の記事を参考にしてください。
+[参考記事](https://qiita.com/mao172/items/f1af5bedd0e9536169ae)
+
+### 仮想マシンの再起動
+以下コマンドで一度、起動停止をして再度起動確認をしましょう。
+```
+vagrant halt
+```
+Vagrantの起動
+```
+vagrant up
+```
+以下のようなログが確認出来れば次へ進みましょう。
+```
+[default] GuestAdditions 6.0.14 running --- OK.
+```
+
 
 ## ゲストOSへのログイン
 作成したディレクトリで下記のコマンドを実行
@@ -160,11 +213,12 @@ yumコマンドを使用してPHPをインストールした場合、古いバ�
 今回はバージョン7.3でインストールする為、外部パッケージツールをダウンロードして、そこからPHPをインストールしていきます。
 ```
 sudo yum -y install epel-release wget
-sudo wget http://rpms.famillecollet.com/enterprise/remi-release-7.3.rpm
+sudo wget http://rpms.famillecollet.com/enterprise/remi-release-7.rpm
 sudo rpm -Uvh remi-release-7.rpm
 sudo yum -y install --enablerepo=remi-php72 php php-pdo php-mysqlnd php-mbstring php-xml php-fpm php-common php-devel php-mysql unzip
 php -v
 ```
+バージョンが表示されれば問題ありません。
 
 ### 拡張モジュール
 PHPのインストールと同時に、PHPアプリケーションを動かす上で必要となるモジュール(拡張機能)をインストールしています。
@@ -210,6 +264,15 @@ Composerは RedHat系のLinuxディストリビューションで使用できる
 cd vagrant_test
 cp -r laravel_appディレクトリまでの絶対パス ./
 ```
+私の場合 ホーム/gizumo/laravel_app ですので以下コマンドです。
+```
+cp -r ~/gizumo/laravel_app ./
+```
+
+
+## Webサーバのインストール
+今回は Apache と nginx の二つを練習します。
+本件は nginx のインストールですので以下は飛ばして構いません。
 
 ### Webサーバとは
 Webサーバとはユーザーからのリクエストの内容に応じてアプリケーションサーバに内容を伝達、またアプリケーションサーバが実行した結果をユーザーに返す役割を担っています。
@@ -323,11 +386,11 @@ sudo systemctl status httpd
 ファイヤーウォールに対してこの80ポートを経由したhttp通信によるアクセスを許可するためのコマンドを実行します。
 ```
 # ファイヤーウォールの起動
-$ sudo systemctl start firewalld.service
-$ sudo firewall-cmd --add-service=http --zone=public --permanent
+sudo systemctl start firewalld.service
+sudo firewall-cmd --add-service=http --zone=public --permanent
 
 # 新たに追加を行ったのでそれをファイヤーウォールに反映させるコマンドも合わせて実行します
-$ sudo firewall-cmd --reload
+sudo firewall-cmd --reload
 ```
 
 ### ファーヤーウォール
@@ -357,6 +420,11 @@ sudo vi /etc/selinux/config
 SELINUX=enforcing
 # ↓ 以下に編集
 SELINUX=disabled
+```
+上記で以下が非常に間違え易く危険な為に注意してください。
+場合によって**カーネルパニック**を引き起こしてしまいます。
+```
+SELINUXTYPE
 ```
 設定を反映させるためにゲストOSを再起動する必要があるので、ゲストOSをから一度ログアウトして下記コマンドを実行してください。
 ```
@@ -496,6 +564,11 @@ Apacheは単体で機能し、Nginxは php-fpmというモジュールとセッ�
 
 ## Nginxのインストール
 Nginxの最新版をインストールしていきます。
+以下はゲストOS側での操作になるので注意しましょう。
+未ログインの肩は以下コマンドを参照してください。
+```
+vagrant ssh
+```
 viエディタを使用して以下のファイルを作成します。
 ```
 sudo vi /etc/yum.repos.d/nginx.repo
@@ -518,6 +591,7 @@ nginx -v
 sudo systemctl start nginx
 ```
 ブラウザにて http://192.168.33.19 と入力し、画面表示を確認してください。
+**Welcome to nginx!** と表示されていれば大丈夫です。
 
 
 ## Laravelを動かす(nginxのconf編集)
@@ -742,16 +816,179 @@ MAMPはMacに特化したパッケージです。
 無料版と有償版があり用途によっては、拡張版である有償版をインストールする必要があります。
 
 
+### 以下はApacheの際に操作した内容です。
+nginxからインストールした場合は以下を参照してください。
+
+## ファイヤーウォールの設定
+起動状態のままホストOS側からアクセスできるようにしてあげましょう。
+ファイヤーウォールに対してこの80ポートを経由したhttp通信によるアクセスを許可するためのコマンドを実行します。
+```
+# ファイヤーウォールの起動
+sudo systemctl start firewalld.service
+sudo firewall-cmd --add-service=http --zone=public --permanent
+
+# 新たに追加を行ったのでそれをファイヤーウォールに反映させるコマンドも合わせて実行します
+sudo firewall-cmd --reload
+```
+
+### ファーヤーウォール
+ネットワークの通信において、その通信をさせるかどうかを判断し許可するまたは拒否する仕組み
+
+### ポート
+httpという通信を行うためのポートと呼ばれる窓口番号
+
+
+## ブラウザの確認
+http://192.168.33.19 と入力し確認してみてください。
+もしまだ表示できないようであれば、一度以下のコマンドを実行してください。
+```
+sudo systemctl restart httpd
+```
+
+
+## それでも表示されない場合
+Laravelのwelcomeページが表示されず、 Forbidden 403 というエラーが出た場合の対処法を以下に記載します。
+viエディタを使用してSELinuxの設定を変更します。
+「SELinux コンテキスト」の不一致によりエラーが出ているので、SELinuxを無効化します。
+```
+sudo vi /etc/selinux/config
+```
+下記の箇所を編集してください。
+```
+SELINUX=enforcing
+# ↓ 以下に編集
+SELINUX=disabled
+```
+上記で以下が非常に間違え易く危険な為に注意してください。
+場合によって**カーネルパニック**を引き起こしてしまいます。
+```
+SELINUXTYPE
+```
+設定を反映させるためにゲストOSを再起動する必要があるので、ゲストOSをから一度ログアウトして下記コマンドを実行してください。
+```
+exit
+vagrant reload
+```
+リロードが完了したら再度ゲストOSにログインしましょう。
+```
+vagrant ssh
+```
+再度Apacheを起動します。
+```
+sudo systemctl start httpd
+```
+再度ブラウザの確認してください。
+
+
+## データベースのインストール
+今回インストールするデータベースはMySQLとなります。versionは5.7を使用します。
+centos7は、デフォルトでmariaDBというデータベースがインストールされていますが、
+MariaDBはMySQLと互換性があるDBなので気にせず、MySQLのインストールを進めていきます。
+rpmに新たにリポジトリを追加し、インストールを行います。
+```
+sudo wget https://dev.mysql.com/get/mysql57-community-release-el7-7.noarch.rpm
+sudo rpm -Uvh mysql57-community-release-el7-7.noarch.rpm
+sudo yum install -y mysql-community-server
+mysql --version
+```
+versionの確認ができましたらインストール完了です。
+次にMySQLを起動し接続を行います。
+```
+sudo systemctl start mysqld
+mysql -u root -p
+Enter password:
+```
+MacあるいはWindowsにMySQLをインストールしたときは、
+何も入力せずに接続が可能だったかと思いますが今回はデフォルトでrootにパスワードが設定されてしまっています。
+まずはpasswordを調べ、接続しpassswordの再設定を行っていく必要があります。
+```
+sudo cat /var/log/mysqld.log | grep 'temporary password'
+2017-01-01T00:00:00.000000Z 1 [Note] A temporary password is generated for root@localhost: hogehoge
+```
+hogehoge と記載されている箇所に存在するランダムな文字列がパスワードとなります。
+※ 今回は、比較的簡単な方法でパスワードの再設定を行いますが、セキュリティ的によろしくはないため本番環境と呼ばれる環境でこの方法で再設定するのは避けてください。
+
+### grep
+grep は 左辺の実行結果の中から、grepで指定した文字列と一致する行や文字列を持つファイルやディレクトリのみを出力するコマンドです。
+以下のコマンドと組合わせて右辺に使用します。
+
+### |
+| はパイプラインといって 左辺 | 右辺 と指定してコマンドを実行することで、左辺の実行結果を右辺に引き渡して右辺を実行することができます。
+
+## パスワードの変更
+先程出力したランダム文字列をコピー後、再度以下のコマンドを実行し、パスワード入力時にペーストしてください。
+```
+mysql -u root -p
+Enter password:
+mysql >
+```
+次に接続した状態でpasswordの変更を行います。
+```
+mysql > set password = "新たなpassword";
+```
+新たなpasswordには、必ず大文字小文字の英数字 + 記号かつ8文字以上の設定をする必要があります。
+MySQL5.7のパスワードポリシーは厳格で開発段階では手間となってしまうため、
+以下の設定を行いシンプルなパスワードに初期設定できるようにMySQLの設定ファイルを変更します。
+```
+sudo vi /etc/my.cnf
+```
+```
+# 省略
+
+[mysqld]
+
+# 省略
+
+# read_rnd_buffer_size = 2M
+datadir=/var/lib/mysql
+socket=/var/lib/mysql/mysql.sock
+
+# 下記の一行を追加
+validate-password=OFF
+```
+編集後はMySQLサーバの再起動が必要です。
+```
+sudo systemctl restart mysqld
+```
+再度MySQLにログインしてパスワードの初期設定を行えば、簡単なパスワードで登録ができます。
+以上で、MySQLの導入と設定が完了となります。
+
+
+## データベースの作成
+実際にLaravelのTodoアプリケーションを動かす上で使用するデータベースの作成を行います。
+```
+mysql > create database laravel_app;
+```
+Query OKと表示されたら作成は完了となります。
+
+
+## Laravelを動かす
+laravel_appディレクトリ下の .env ファイルの内容を以下に変更してください。
+```
+DB_PASSWORD=
+# ↓ 以下に編集
+DB_PASSWORD=登録したパスワード
+```
+laravel_appディレクトリに移動してマイグレーションを実行します。
+```
+php artisan migrate
+```
+マイグレーションが問題なく実行できた後、
+ブラウザ上でユーザー登録ができればローカルで動かしていたLaravelを仮想環境上で全く同じように動かすことができたということになります。
+
+
 
 # 環境構築の所感
 - ディレクトリの位置やファイル名は特に意識が必要、設定ファイルへ反映させる際はコピペを推奨
 - 操作する際は現在ゲストなのか、ホストなのか見極めてから動かす
 - webサーバの起動状態を確認
 - 設定ファイルなどを編集後はbuildだけでなく、起動停止をさせて再起動するなどが必要(Docker)
-- 見るより動かした方が理解が早いことを痛感
+- 見るより動かした方が理解が早いことを痛感、不安な場合は確認必須
+- 動作確認時にカーネルパニック(ブルースクリーンみたいなもの)を起こしてしまった。
+  403 Forbiddenエラー解消時に SELINUXTYPE の方を disabled(無効化) してしまった。
+  上記により vagrant ssh によるログインが不可能になりクラッシュしてしまった。
 
 
 
 # 参考サイト
 [Gizumoのホームページはこちら](https://gizumo-inc.jp/)
-s
