@@ -764,9 +764,7 @@ syntax error, unexpected '}', expecting ';'
 ```
 上記の syntax error が確認出来たかと思います。
 
-確認が完了しましたら、Ctrl + c でtailの実行モードを終了しましょう。
-
-では変更した routes/web.php の内容を元に戻して再度
+確認が完了しましたら変更した routes/web.php の内容を元に戻して再度
 
 [ブラウザの確認](http://192.168.33.19)
 
