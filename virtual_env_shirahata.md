@@ -574,7 +574,7 @@ sudo systemctl start nginx
 
 
 ## Laravelを動かす(nginxのconf編集)
-定ファイルを編集します。
+設定ファイルを編集します。
 
 php-fpmにも設定ファイルが存在しているのでこちらも編集を行います。
 ```
@@ -587,11 +587,14 @@ sudo vi /etc/nginx/conf.d/default.conf
 - server_name箇所、Vagranfileでコメントを外した箇所のipアドレスを記述してください。
 - server、root箇所を追記
 - server、index箇所を追記
+
+変更点②は、
+
 - location、root箇所をコメントアウト
 - location、index箇所をコメントアウト
 - location以下へ一文を追記、リクエストに応じたファイルを返す処理です。
 
-変更点②は、
+変更点③は、
 
 - 該当箇所のコメントを解除してください。
 - location、fastcgi_param箇所を以下を参考に変更してください。
@@ -608,6 +611,7 @@ server {
   #charset koi8-r;
   #access_log  /var/log/nginx/host.access.log  main;
 
+# 変更点② (8行)
   location / {
       #root   /usr/share/nginx/html; # コメントアウト
       #index  index.html index.htm;  # コメントアウト
@@ -616,7 +620,7 @@ server {
 
   # 省略
 
-# 変更点① (33行)
+# 変更点③ (33行)
   location ~ \.php$ {
   #    root           html;
       fastcgi_pass   127.0.0.1:9000;
