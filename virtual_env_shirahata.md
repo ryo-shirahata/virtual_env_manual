@@ -150,11 +150,7 @@ mysqld  1473 mysql   17u  IPv6  22561      0t0  TCP *:mysql (LISTEN)
 
 
 ## Vagrant プラグインのインストール
-Vagrantへプラグイン(拡張機能)をインストールするコマンド
-
-今回は、初めに追加したBoxの中にインストールされているGuest Additionsというもののバージョンを、
-
-VirtualBoxのバージョンに合わせて最新化してくれるプラグイン
+Vagrantへプラグイン(拡張機能)をインストールするコマンドです。
 ```
 vagrant plugin install vagrant-vbguest
 ```
@@ -165,6 +161,30 @@ vagrant plugin list
 vagrant-vbguest以外にも 起動しているゲストOSの状態を全て同時に確認できるようにしてくれる vagrant-global-status、
 
 環境構築中のゲストOSの状態を保存・巻き戻しができる sahara といったプラグインがあります。
+
+### vagrant-vbguest
+初めに追加した vagrant Box の中にインストールされている
+
+Guest Additions というもののバージョンを、
+
+VirtualBox のバージョンに合わせて最新化してくれるプラグインです。
+
+### Guest Additions
+機能はたくさんあるので抜粋して利便性の高いものを中心に紹介します。
+- フォルダーの共有
+
+ホストOS(自分のPCのOS)とゲストOS(仮想マシンのOS)の間に共有フォルダを作成することができます。
+
+- クリップボードの共有
+
+コピーして戻ってきてまたコピーしてなどする必要がなく、
+
+OSを頻繁に行き来する人にとっては大幅に利便性が向上されます。
+
+- 自動ログイン
+
+自動ログインを行ってくれるようになるので、操作性の向上に役立ちます。
+
 
 
 ## Vagrantを使用してゲストOSの起動
