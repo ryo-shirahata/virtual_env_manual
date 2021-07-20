@@ -24,7 +24,8 @@
 - PHPのインストール
 - composerのインストール
 
-- Laravelアプリケーションのコピー作成
+- Laravelアプリケーションの作成
+- 認証機能の実装
 - Webサーバのインストール
   今回はNginxを使用します。
 
@@ -41,6 +42,10 @@
 - nginxのconfファイルの編集
 - php-fpmのconf編集
 - Nginxの起動
+- ファイヤーウォールの設定
+- 画面表示の確認
+- データベースのインストール
+- データベースの作成
 - 権限の付与
 - 動作確認
 
@@ -349,11 +354,10 @@ PHPのパッケージの **依存関係** を管理・解決するツールで�
 複雑な依存関係にあるパッケージをすべて同時にインストールしてくれます。
 
 
+## Laravelアプリケーションを用意
+始めに作成したディレクトリへ移動し、laravel_appを用意してください。
 
-## Laravelアプリケーションのコピー作成
-始めに作成したディエクトりへ移動し、laravel_appのコピーを配下へ作成してください。
-
-※ ゲストOSにログインしている人は一旦 exit コマンドを実行してログアウトしてください。
+今回は予めアプリケーションがある為、コピーで対応します。
 ```
 cd vagrant_test
 cp -r laravel_appディレクトリまでの絶対パス ./
@@ -362,6 +366,112 @@ cp -r laravel_appディレクトリまでの絶対パス ./
 ```
 cp -r ~/gizumo/laravel_app ./
 ```
+
+## Laravelアプリケーションが無い場合
+以下を参照して作成を行いましょう。
+
+Composerのコマンドを実行します。
+```
+cd vagrant_test
+composer create-project --prefer-dist laravel/laravel laravel_app "6.*"
+```
+今回は laravel_app という名前のプロジェクトにしました。
+
+最後の 6.* はLaravelのバージョンを表し、プロジェクトごとに好きなバージョンを指定できます。
+
+同名のディレクトリが出来上がっているはずですので ls コマンドで確認してみてください。
+
+
+## ローカル開発サーバーを起動する
+以下コマンドを実行してください。
+```
+cd laravel_app
+php artisan serve
+```
+実行後、以下のように表示されたらサーバーの起動は成功です。
+```
+Laravel development server started: <http://127.0.0.1:8000>
+```
+
+### ブラウザの確認
+[ブラウザの確認](http://127.0.0.1:8000)
+
+サーバーを終了させる場合は、ctrl + c を押してください。
+
+
+## 認証機能を実装
+今回のアプリケーションには認証機能（ログイン機能）を実装します。
+
+以下を参照し実装を進めましょう。
+
+
+### インストール方法について
+Laravelでは5系と6系でインストール方法が異なります。
+
+今回は6系でのインストールです。
+
+他の言語やフレームワークでも **バージョン** はとても大切な
+
+キーワードになりますので環境を立ち上げる際は注意を計りましょう。
+
+
+## laravel/uiをインストール
+[laravel/ui](https://github.com/laravel/ui)ライブラリをインストールします。
+```
+composer require laravel/ui 1.*
+```
+変更されるファイル
+- composer.json
+- composer.lock
+
+
+## vueファイルをインストール
+```
+php artisan ui vue --auth
+```
+追加されるファイル
+- app/Http/Controllers/HomeController.php
+- resources/js/components/ExampleComponent.vue
+- resources/sass/_variables.scss
+- resources/views/auth/login.blade.php
+- resources/views/auth/passwords/email.blade.php
+- resources/views/auth/passwords/reset.blade.php
+- resources/views/auth/register.blade.php
+- resources/views/auth/verify.blade.php
+- resources/views/home.blade.php
+- resources/views/layouts/app.blade.php
+
+変更されるファイル
+- package.json
+- resources/js/app.js
+- resources/js/bootstrap.js
+- resources/sass/app.scss
+- routes/web.php
+- webpack.mix.js
+
+以上で、Laravelログイン画面の実装は完了です。
+
+
+## 画面遷移の確認
+LOGIN ボタンをクリックしてください。
+
+アプリケーションで見かけるようなログイン画面へ遷移したかと思います。
+
+
+REGISTER ボタンをクリックしてください。
+
+此方はユーザー登録の画面へ遷移したかと思います。
+
+
+## ユーザー登録
+REGISTER へ遷移し、ユーザー登録をしてみましょう。
+
+各項目を入力し、下部ボタンをクリックしてください。
+
+HOME 画面へ遷移すれば機能実装完了です。
+
+念のためDBへ情報が登録できているか確認もしましょう。
+
 
 
 ## Webサーバのインストール
