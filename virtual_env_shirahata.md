@@ -296,15 +296,14 @@ yumコマンドを使用してPHPをインストールした場合、古いバ�
 sudo yum -y install epel-release wget
 sudo wget http://rpms.famillecollet.com/enterprise/remi-release-7.rpm
 sudo rpm -Uvh remi-release-7.rpm
-sudo yum -y install --enablerepo=remi-php72 php php-pdo php-mysqlnd php-mbstring php-xml php-fpm php-common php-devel php-mysql unzip
+sudo yum -y install --enablerepo=remi-php73 php php-pdo php-mysqlnd php-mbstring php-xml php-fpm php-common php-devel php-mysql unzip
 php -v
 ```
 以下のようなバージョンが表示されれば問題ありません。
 ```
-PHP 7.4.20 (cli) (built: Jun  4 2021 03:27:28) ( NTS )
-Copyright (c) The PHP Group
-Zend Engine v3.4.0, Copyright (c) Zend Technologies
-    with Zend OPcache v7.4.20, Copyright (c), by Zend Technologies
+PHP 7.3.29 (cli) (built: Jun 29 2021 09:30:31) ( NTS )
+Copyright (c) 1997-2018 The PHP Group
+Zend Engine v3.3.29, Copyright (c) 1998-2018 Zend Technologies
 ```
 
 
